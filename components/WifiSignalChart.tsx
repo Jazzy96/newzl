@@ -3,8 +3,22 @@ import { Line, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Responsi
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { processExcelFile } from '@/utils/excelProcessor';
 
-// 默认数据
-const defaultData = [
+// 修改数据点接口定义
+interface DataPoint {
+  time: string;
+  "0004A (5G)"?: number;
+  "0004A (2.4G)"?: number;
+  "00383 (5G)"?: number;
+  "00383 (2.4G)"?: number;
+  [key: string]: string | number | undefined; // 允许其他可能的键
+}
+
+interface ColorMap {
+  [key: string]: string;
+}
+
+// 为默认数据添加类型注解
+const defaultData: DataPoint[] = [
   {
     "time": "06:25:50",
     "0004A (5G)": -36
@@ -1659,12 +1673,8 @@ const defaultColors = {
   "00383 (5G)": "hsl(0, 70%, 40%)"
 };
 
-interface ColorMap {
-  [key: string]: string;
-}
-
 export default function WifiSignalChart() {
-  const [data, setData] = useState(defaultData);
+  const [data, setData] = useState<DataPoint[]>(defaultData);
   const [colors, setColors] = useState<ColorMap>(defaultColors);
   const [isDragging, setIsDragging] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);

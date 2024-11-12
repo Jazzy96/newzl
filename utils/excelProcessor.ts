@@ -5,6 +5,13 @@ interface ProcessedData {
   [key: string]: any;
 }
 
+// 添加类型定义
+interface ExcelData {
+  time: string;
+  device: string;
+  signal: number;
+}
+
 export async function processExcelFile(file: File): Promise<{
   chartData: ProcessedData[];
   colorMapping: Record<string, string>;
@@ -22,7 +29,7 @@ export async function processExcelFile(file: File): Promise<{
   }));
 
   // 获取唯一设备
-  const devicesSet = new Set();
+  const devicesSet = new Set<string>();
   processedJsonData.forEach((row: any) => {
     const deviceName = row.serial_no.slice(-5);
     devicesSet.add(deviceName);
@@ -82,7 +89,7 @@ function generateColorMapping(devices: string[]): Record<string, string> {
   return colorMapping;
 }
 
-function processJsonData(jsonData: any[]): ProcessedData[] {
+function processJsonData(jsonData: ExcelData[]): ProcessedData[] {
   const processed = jsonData.reduce((acc: Record<string, any>, row: any) => {
     try {
       const { serial_no, band, create_time, signal } = row;
