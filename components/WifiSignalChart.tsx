@@ -2,9 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Line, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
+interface ColorMap {
+  [key: string]: string;  // 键是字符串，值也是字符串（颜色值）
+}
+
 export default function WifiSignalChart() {
   const [data, setData] = useState([]);
-  const [colors, setColors] = useState({});
+  const [colors, setColors] = useState<ColorMap>({});
   const [isDragging, setIsDragging] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -59,7 +63,7 @@ export default function WifiSignalChart() {
         method: 'POST',
         body: formData,
       });
-      
+    
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Upload failed:', {
@@ -69,22 +73,28 @@ export default function WifiSignalChart() {
         });
         throw new Error(`上传失败: ${response.status} ${errorText}`);
       }
-
+    
       // 重新获取数据和颜色配置
       const [newDataRes, newColorsRes] = await Promise.all([
         fetch('/api/wifi-data'),
         fetch('/api/device-colors')
       ]);
-
-      if (!newDataRes.ok || !newColorsRes.ok) {
-        throw new Error('获取新数据失败');
+    
+      // 分别检查每个响应的状态
+      if (!newDataRes.ok) {
+        throw new Error(`获取WiFi数据失败: ${newDataRes.status}`);
       }
-
+      if (!newColorsRes.ok) {
+        throw new Error(`获取设备颜色配置失败: ${newColorsRes.status}`);
+      }
+    
       const [newData, newColors] = await Promise.all([
         newDataRes.json(),
         newColorsRes.json()
-      ]);
-
+      ]).catch(() => {
+        throw new Error('解析响应数据失败');
+      });
+    
       setData(newData);
       setColors(newColors);
       setShowSuccess(true);
@@ -93,7 +103,10 @@ export default function WifiSignalChart() {
       }, 2000);
     } catch (error) {
       console.error('Error details:', error);
-      alert(`文件上传失败: ${error.message}`);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : '未知错误';
+      alert(`操作失败: ${errorMessage}`);
     }
   };
 
@@ -125,7 +138,7 @@ export default function WifiSignalChart() {
           <CardTitle>WiFi 信号强度分析</CardTitle>
           <CardDescription>
             显示终端在一段时间内的RSSI值、2G/5G 频段切换、设备切换
-            （RSSI > -65dBm 信号良好）
+            （RSSI &gt -65dBm 信号良好）
           </CardDescription>
         </CardHeader>
         <CardContent>

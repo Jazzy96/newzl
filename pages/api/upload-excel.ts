@@ -1,10 +1,9 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import formidable from 'formidable';
+import formidable, { Fields, Files } from 'formidable';
 import { exec } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 
-// 禁用默认的 body 解析，因为我们要处理文件上传
 export const config = {
   api: {
     bodyParser: false,
@@ -16,19 +15,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: '只支持 POST 请求' });
   }
 
+  const uploadDir = path.join(process.cwd(), 'uploads');
+  
+  // 确保上传目录存在
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+
   const form = formidable({
-    uploadDir: path.join(process.cwd(), 'uploads'),
+    uploadDir,
     filename: () => 'wifi_data.xlsx',
   });
 
-  // 确保上传目录存在
-  if (!fs.existsSync(form.uploadDir)) {
-    fs.mkdirSync(form.uploadDir, { recursive: true });
-  }
-
   try {
-    // 解析文件
-    const [fields, files] = await new Promise((resolve, reject) => {
+    // 添加类型定义
+    const [fields, files] = await new Promise<[Fields, Files]>((resolve, reject) => {
       form.parse(req, (err, fields, files) => {
         if (err) reject(err);
         resolve([fields, files]);
@@ -46,7 +47,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
       console.log(`Python脚本输出: ${stdout}`);
       
-      // 修改：传递正确的文件路径给 Node.js 脚本
       const uploadedFilePath = path.join(process.cwd(), 'uploads', 'wifi_data.xlsx');
       exec(`node scripts/process-excel.js "${uploadedFilePath}"`, (jsError, jsStdout, jsStderr) => {
         if (jsError) {
@@ -65,4 +65,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error('上传处理错误:', error);
     res.status(500).json({ error: '文件上传失败' });
   }
-} 
+}
+
